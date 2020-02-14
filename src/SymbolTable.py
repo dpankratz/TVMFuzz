@@ -2,3 +2,4 @@
 
 class SymbolTable:
 	variables = []
+	binds = {}
