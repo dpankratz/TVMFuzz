@@ -35,6 +35,7 @@ def _force_float(e,np=False):
 		return e
 	return tvm.expr.Cast('float32',e)
 
+
 #TODO: Numpy promotion e.g. 10 & 10.0 should turn into 10.0 & 10.0 according to TVM rules
 
 class UnaryOp(object):
@@ -61,6 +62,22 @@ class BitwiseNeg(UnaryOp):
 
 	def apply_np(e):
 		return lambda : ~e()
+
+class Abs(UnaryOp):
+	def apply(e):
+		return tvm.abs(e)
+
+	def apply_np(e):
+		return lambda : abs(e())
+
+class Not(UnaryOp):
+	"""
+	Not supported by tvm 
+	"""
+
+
+
+
 
 class BinaryOp(object):
 	nargs = 2
@@ -214,6 +231,56 @@ class ShiftLeft(BinaryOp):
 	def apply_np(lhs,rhs):
 		return lambda : lhs() << rhs()
 
+class GT(BinaryOp):
+	def apply(lhs,rhs):
+		return rhs > lhs
+
+	def apply_np(lhs,rhs):
+		return lambda : lhs() > rhs()	
+
+class GE(BinaryOp):
+	def apply(lhs,rhs):
+		return rhs >= lhs
+
+	def apply_np(lhs,rhs):
+		return lambda : lhs() >= rhs()	
+
+class LT(BinaryOp):
+	def apply(lhs,rhs):
+		return rhs < lhs
+
+	def apply_np(lhs,rhs):
+		return lambda : lhs() < rhs()	
+
+class LE(BinaryOp):
+	def apply(lhs,rhs):
+		return rhs <= lhs
+
+	def apply_np(lhs,rhs):
+		return lambda : lhs() <= rhs()	
+
+class EQ(BinaryOp):
+	def apply(lhs,rhs):
+		return rhs == lhs
+
+	def apply_np(lhs,rhs):
+		return lambda : (lhs() == rhs()).asobject() # EqualOp is deferred eqOp in python
+
+class NE(BinaryOp):
+	def apply(lhs,rhs):
+		return rhs != lhs
+
+	def apply_np(lhs,rhs):
+		return lambda : (lhs() != rhs()).asobject() # EqualOp is deferred 
+
+class Pow(BinaryOp):
+	def apply(lhs,rhs):
+		#This is tvm.pow in c++ but tvm.power in python
+		return tvm.power(_force_float(lhs),_force_float(rhs))
+
+	def apply_np(lhs,rhs):
+		return lambda : float(lhs()) ** float(rhs())
+
 class Literal(object):
 	nargs = 0
 
@@ -260,8 +327,9 @@ class NewVar(Literal):
 		return new_var
 
 	def apply_np():
+		#this access needs to happen outside of the lambda to materialize the literal since otherwise it will accessing a future value of _last_random
 		name = NewVar._last_random
-		return lambda : eval("SymbolTable.binds[\'{0}\']".format(name))
+		return lambda : SymbolTable.binds[name]
 
 
 class ExistingVar(Literal):
@@ -278,8 +346,9 @@ class ExistingVar(Literal):
 		return rand_var
 
 	def apply_np():
+		#this access needs to happen outside of the lambda to materialize the literal since otherwise it will accessing a future value of _last_random
 		name = ExistingVar._last_random
-		return lambda : eval("SymbolTable.binds[\'{0}\']".format(name))
+		return lambda : SymbolTable.binds[name]
 
 
 if __name__ == "__main__":

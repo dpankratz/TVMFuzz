@@ -11,5 +11,8 @@ b = 10 & a #crashes
 
 #non-reported
 a = tvm.const(3)
+b = 10 // a
+b = 10 >> a
 b = 10 % a
 b = 10 << a #crashes
+

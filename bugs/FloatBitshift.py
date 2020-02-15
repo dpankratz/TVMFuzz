@@ -1,6 +1,6 @@
-# 2/9/2020
+# 2//2020
 # Bug descrption: Bitshifting by a float is the identity function
-# PR: TODO
+# PR: https://github.com/apache/incubator-tvm/pull/4892
 
 
 import tvm
@@ -11,22 +11,16 @@ hadError = False
 
 try: 
 
-	shape = (5,5)
-
+	shape = (1,1)
 	a = tvm.const(dtype='int32',value=10)
-
-	c = tvm.compute(shape,lambda i,j: a << 1.5) #this should either be impossible or materialize as a * (2 ** 1.5)
-
+	c = tvm.compute(shape,lambda i,j: a << 2.0) #this should either be impossible or materialize as a * (2 ** 1.5)
 	s = tvm.create_schedule([c.op])
-
 	f = tvm.build(s,[c])
-
 	c_tvm= tvm.nd.array(np.zeros(shape,dtype='float32'))
 	f(c_tvm)
 	print(c_tvm)
-
-except:
-	hadError = True
-
-assert hadError
+	assert False
+except tvm.TVMError:
+	pass
+	
 

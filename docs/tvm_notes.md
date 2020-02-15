@@ -4,6 +4,18 @@ Entry point is `tvm.build(inputs=[tvm.Schedule],args=[Buffer/Tensor/Var], target
 	-can first arg be a list?
 	-can second arg include size_var, const, etc.
 
+Order of args determines order literals need to be passed to final packedFunc. I.e.
+```
+f = tvm.build(s,[b,c,d,a])
+
+a_lit = 1
+b_lit = 1.5
+c_lit = 2
+d = tvm.nd.array(np.zeros(shape=shape,dtype=dtype))
+
+f(b_lit,c_lit,d,a_lit) # order correspones to tvm.build call
+```
+
 `tvm.Schedule` is created with `tvm.create_schedule([tvm.tensor.ComputeOp])`
 `tvm.tensor.ComputeOp` is `op` field of `tvm.tensor.Tensor`
 `tvm.tensor.Tensor` is created by `tvm.compute(shape=[tvm.expr],fcompute= indices -> value,name=str,tag=str,attrs=dict{??})`
@@ -71,3 +83,7 @@ As seen in the **Compute function** section exprs can be developed through opera
 Given the capability to generate arbitrary expressions it remains to generate arbitrary sequences of computations.
 
 Thus tvm front-end is really object oriented programming and operator overriding in python. 
+
+# Expr Promotion
+
+Operators of the form `<int> <op> <float>` will automatically become `<float> <op> <float>` in TVM so that strategy must be replicated in the python ground truth.
