@@ -1,4 +1,4 @@
-# 2//2020
+# 2/14/2020
 # Bug descrption: Bitshifting by a float is the identity function
 # PR: https://github.com/apache/incubator-tvm/pull/4892
 

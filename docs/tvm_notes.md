@@ -86,4 +86,4 @@ Thus tvm front-end is really object oriented programming and operator overriding
 
 # Expr Promotion
 
-Operators of the form `<int> <op> <float>` will automatically become `<float> <op> <float>` in TVM so that strategy must be replicated in the python ground truth.
+Tvm implements a system for type promotion which upgrades bools to ints and ints to floats where possible. Python implements a similar system.

@@ -16,5 +16,6 @@ for var in SymbolTable.variables:
 	print(var.name + " = " + str(SymbolTable.binds[var.name]))
 	#numpy binds
 
+	#TODO: tvm test bed for exprs and stmts
 
 print(np_expr())

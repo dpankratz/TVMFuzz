@@ -1,9 +1,9 @@
 """
-Representation of tvm exprs that can be combined to produce random tvm exprs or random numpy exprs
-Tvm builds the ast by overriding python operators between tvm.expr.ExprOp and python types
+Representation of exprs that can be combined to produce random exprs or random numpy exprs
+Tvm builds the ast by overriding python operators between tir.expr.ExprOp and python types
 
 To have a matching numpy implementation we recreate the AST as a tree of lambda calls such that populating the variables and calling the root node
-will return the same output as the tvm Expr
+will return the same output as the Expr
 
 """
 
@@ -13,30 +13,25 @@ from ProbabilisticSelection import ProbabilisticSelection
 import random
 from math import floor,ceil
 from SymbolTable import SymbolTable
+from Util import *
 
 def _suppress_zero(rhs):
 	if(rhs == 0):
-		return 1
+		return rhs + 1
 	if(isinstance(rhs,(tvm.expr.IntImm,tvm.expr.FloatImm)) and ceil(rhs.value) == 0):
 		return 1
 	return rhs
 
 def _force_int(e, np=False):
-	if(isinstance(e,int)):
-		return e
-	if(isinstance(e,tvm.expr.ExprOp) and 'int' in e.dtype):
+	if (dtype_is_int(e)):
 		return e
 	return tvm.expr.Cast('int32',e)
 
 def _force_float(e,np=False):
-	if(isinstance(e,float)):
-		return e
-	if(isinstance(e,tvm.expr.ExprOp) and 'float' in e.dtype):
+	if (dtype_is_float(e)):
 		return e
 	return tvm.expr.Cast('float32',e)
 
-
-#TODO: Numpy promotion e.g. 10 & 10.0 should turn into 10.0 & 10.0 according to TVM rules
 
 class UnaryOp(object):
 	nargs = 1
@@ -58,10 +53,10 @@ class Neg(UnaryOp):
 
 class BitwiseNeg(UnaryOp):
 	def apply(e):
-		return ~e
+		return ~_force_int(e)
 
 	def apply_np(e):
-		return lambda : ~e()
+		return lambda : ~int(e())
 
 class Abs(UnaryOp):
 	def apply(e):
@@ -198,38 +193,38 @@ class IndexMod(BinaryOp):
 
 class BitwiseAnd(BinaryOp):
 	def apply(lhs,rhs):
-		return lhs & rhs
+		return _force_int(lhs) & _force_int(rhs)
 
 	def apply_np(lhs,rhs):
-		return lambda : lhs() & rhs()
+		return lambda : int(lhs()) & int(rhs())
 
 class BitwiseOr(BinaryOp):
 	def apply(lhs,rhs):
-		return lhs | rhs
+		return  _force_int(lhs) | _force_int(rhs)
 
 	def apply_np(lhs,rhs):
-		return lambda : lhs() | rhs()
+		return lambda : int(lhs()) | int(rhs())
 
 class BitwiseXor(BinaryOp):
 	def apply(lhs,rhs):
-		return lhs ^ rhs
+		return _force_int(lhs) ^ _force_int(rhs)
 
 	def apply_np(lhs,rhs):
-		return lambda : lhs() ^ rhs()
+		return lambda : int(lhs()) ^ int(rhs())
 
 class ShiftRight(BinaryOp):
 	def apply(lhs,rhs):
-		return lhs >> rhs
+		return  _force_int(lhs) >> _force_int(rhs)
 
 	def apply_np(lhs,rhs):
-		return lambda : lhs() >> rhs()
+		return lambda : int(lhs()) >> int(rhs())
 
 class ShiftLeft(BinaryOp):
 	def apply(lhs,rhs):
-		return rhs << lhs
+		return  _force_int(lhs) << _force_int(rhs)
 
 	def apply_np(lhs,rhs):
-		return lambda : lhs() << rhs()
+		return lambda : int(lhs()) << int(rhs())
 
 class GT(BinaryOp):
 	def apply(lhs,rhs):
@@ -261,17 +256,17 @@ class LE(BinaryOp):
 
 class EQ(BinaryOp):
 	def apply(lhs,rhs):
-		return rhs == lhs
+		return (rhs == lhs).asobject() # EqualOp is deferred eqOp in python
 
 	def apply_np(lhs,rhs):
-		return lambda : (lhs() == rhs()).asobject() # EqualOp is deferred eqOp in python
+		return lambda : lhs() == rhs()
 
 class NE(BinaryOp):
 	def apply(lhs,rhs):
-		return rhs != lhs
+		return (rhs != lhs).asobject()
 
 	def apply_np(lhs,rhs):
-		return lambda : (lhs() != rhs()).asobject() # EqualOp is deferred 
+		return lambda : lhs() != rhs()
 
 class Pow(BinaryOp):
 	def apply(lhs,rhs):
