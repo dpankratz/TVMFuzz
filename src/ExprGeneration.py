@@ -1,9 +1,11 @@
 import tvm
+from tvm import te,tir
 import random
 import traceback
 import sys 
 from ProbabilisticSelection import ProbabilisticSelection
 from Expression import *
+from generation_node import GenerationNode
 from Util import dtype_is_float,dtype_is_int
 
 _BINARY_OP_WEIGHT = 1
@@ -39,12 +41,9 @@ _expr_selection = ProbabilisticSelection([
 	(_UNARY_WEIGHT, BitwiseNeg),
 	(_UNARY_WEIGHT, Abs),
 
-	(_DIV_WEIGHT, Div),
 	#(_DIV_WEIGHT, Mod), #Currently bugged
 	(_DIV_WEIGHT, FloorDiv),
 	(_DIV_WEIGHT, FloorMod),
-	(_DIV_WEIGHT, IndexDiv),
-	(_DIV_WEIGHT, IndexMod),
 	(_DIV_WEIGHT, TruncDiv),
 	(_DIV_WEIGHT, TruncMod),
 	(_LIT_WEIGHT, IntLit),
@@ -83,8 +82,7 @@ def _handle_promotion(a_tvm,b_tvm,a_np,b_np):
 	return (a_tvm,b_tvm,a_np,b_np)
 
 def _handle_no_tvm(a_tvm,b_tvm,a_np,b_np):
-	if(not isinstance(a_tvm,tvm.expr.ExprOp) and not isinstance(b_tvm,tvm.expr.ExprOp)):
-		print("no tvm")
+	if(not isinstance(a_tvm,tir.expr.ExprOp) and not isinstance(b_tvm,tir.expr.ExprOp)):
 		#if both are python types then it's failing to test tvm so replace with tvm expr
 		if(random.random() >= 0.5):
 			a_tvm = ExistingVar.apply()
@@ -122,7 +120,7 @@ def generate_tvm_expr():
 		elif(expr.nargs == 2):
 			a_tvm = _generate_expr(depth + 1)
 			b_tvm = _generate_expr(depth + 1)
-			if(not isinstance(a_tvm,tvm.expr.ExprOp) and not isinstance(b_tvm,tvm.expr.ExprOp)):
+			if(not isinstance(a_tvm,tir.expr.ExprOp) and not isinstance(b_tvm,tir.expr.ExprOp)):
 				#if both are python types then it's failing to test tvm so replace with tvm expr
 				if(random.random() >= 0.5):
 					a_tvm = ExistingVar.apply()
@@ -159,10 +157,31 @@ def generate_tvm_and_np_expr():
 	return _generate_expr(0)
 
 
+def generate_tvm_and_np_tree():
+
+	def _generate_expr(depth):
+		
+		expr = _expr_selection.select()
+		if(depth > 100 or expr == None):
+			term = _nonrecursive_selection.select()
+			return GenerationNode(term)
+		if(expr.nargs == 0):
+			return GenerationNode(expr)
+		elif(expr.nargs == 1):
+			op = _generate_expr(depth + 1)
+			return GenerationNode(expr,[op])
+		elif(expr.nargs == 2):
+			ops = [_generate_expr(depth + 1) , _generate_expr(depth + 1)]
+			return GenerationNode(expr,ops)
+
+	return _generate_expr(0)
+
 if __name__ == "__main__":
 	try:
-		while(True):
-			print(generate_tvm_expr())
+		root = generate_tvm_and_np_tree()
+		print(root)
+		print(root.emit_tvm())
+		print(root.emit_np())
 	except Exception:
 		traceback.print_exc()
-		print("a={0}\nb={1}\n".format(a_tvm,b_tvm))
+		#print("a={0}\nb={1}\n".format(a_tvm,b_tvm))

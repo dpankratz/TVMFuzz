@@ -1,17 +1,15 @@
 import tvm
 import numpy as np
 import sys
-
-import tvm
-import numpy as np
-import sys
+from tvm import te,tir
 
 
-shape = (1,1)
-a = tvm.const(dtype='int32',value=10)
-c = tvm.compute(shape,lambda i,j: tvm.const(True) + tvm.const(True))
-s = tvm.create_schedule([c.op])
-f = tvm.build(s,[c])
-c_tvm= tvm.nd.array(np.zeros(shape,dtype='bool'))
-f(c_tvm)
+shape = (1,	)
+a = te.var(name="a",dtype="int32")
+b = te.var(name="b",dtype="int32")
+c = te.compute(shape,lambda i: a % b)
+s = te.create_schedule([c.op])
+f = tvm.build(s,[a,b,c])
+c_tvm= tvm.nd.array(np.zeros(shape,dtype='int32'))
+f(2,0,c_tvm)
 print(c_tvm)

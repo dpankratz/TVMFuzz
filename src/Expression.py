@@ -9,6 +9,7 @@ will return the same output as the Expr
 
 
 import tvm
+from tvm import te,tir
 from ProbabilisticSelection import ProbabilisticSelection
 import random
 from math import floor,ceil
@@ -17,21 +18,20 @@ from Util import *
 
 def _suppress_zero(rhs):
 	if(rhs == 0):
-		return rhs + 1
-	if(isinstance(rhs,(tvm.expr.IntImm,tvm.expr.FloatImm)) and ceil(rhs.value) == 0):
+		return 1
+	if(isinstance(rhs,(tir.expr.IntImm,tir.expr.FloatImm)) and ceil(rhs.value) == 0):
 		return 1
 	return rhs
 
 def _force_int(e, np=False):
 	if (dtype_is_int(e)):
 		return e
-	return tvm.expr.Cast('int32',e)
+	return tir.expr.Cast('int32',e)
 
 def _force_float(e,np=False):
 	if (dtype_is_float(e)):
 		return e
-	return tvm.expr.Cast('float32',e)
-
+	return tir.expr.Cast('float32',e)
 
 class UnaryOp(object):
 	nargs = 1
@@ -60,7 +60,7 @@ class BitwiseNeg(UnaryOp):
 
 class Abs(UnaryOp):
 	def apply(e):
-		return tvm.abs(e)
+		return tir.abs(e)
 
 	def apply_np(e):
 		return lambda : abs(e())
@@ -95,10 +95,14 @@ class Add(BinaryOp):
 
 class Sub(BinaryOp):
 	def apply(lhs,rhs):
-		return lhs - rhs
+		return tir.Select(tir.expr.Cast('bool',rhs > lhs), rhs - lhs, lhs - rhs) #Prevent underflow 
 
 	def apply_np(lhs,rhs):
-		return lambda : lhs() - rhs()
+		return lambda : Sub._select(lhs(),rhs())
+
+	def _select(lhs,rhs):
+		#Use helper function to avoid evaluating each expression multiple times
+		return lhs - rhs if lhs > rhs else rhs - lhs
 
 class Mul(BinaryOp):
 	def apply(lhs,rhs):
@@ -108,29 +112,27 @@ class Mul(BinaryOp):
 		return lambda : lhs() * rhs()
 
 class Div(BinaryOp):
-	def apply(lhs,rhs):
-		return lhs / _force_float(_suppress_zero(rhs))
-
-	def apply_np(lhs,rhs):
-		return lambda : lhs() / _force_float(_suppress_zero(rhs()))
+	"""
+	Not supported by tvm, use truncdiv or floordiv
+	"""
 
 class Mod(BinaryOp):
 	def apply(lhs,rhs):
-		return _force_int(lhs) % _force_int(_suppress_zero(rhs))
+		return _force_int(lhs) % _suppress_zero(_force_int(rhs))
 
 	def apply_np(lhs,rhs):
-		return lambda : _force_int(lhs()) % _force_int(_suppress_zero(rhs()))
+		return lambda : int(lhs()) % _suppress_zero(int(rhs()))
 
 class Min(BinaryOp):
 	def apply(lhs,rhs):
-		return tvm.min(lhs,rhs)
+		return tir.min(lhs,rhs)
 
 	def apply_np(lhs,rhs):
 		return lambda : min(lhs(),rhs())
 
 class Max(BinaryOp):
 	def apply(lhs,rhs):
-		return tvm.max(lhs,rhs)
+		return tir.max(lhs,rhs)
 
 	def apply_np(lhs,rhs):
 		return lambda : max(lhs(),rhs())
@@ -140,56 +142,48 @@ class Max(BinaryOp):
 class FloorDiv(BinaryOp):
 	def apply(lhs,rhs):
 		a = _force_int(lhs)
-		b = _force_int(_suppress_zero(rhs))
-		return tvm.floordiv(a,b)
+		b = _suppress_zero(_force_int(rhs))
+		return tir.floordiv(a,b)
 
 	def apply_np(lhs,rhs):
-		return lambda : floor(int(lhs()) / int(_suppress_zero(rhs())))
+		return lambda : int(lhs()) // _suppress_zero(int(rhs()))
 
 class FloorMod(BinaryOp):
 	def apply(lhs,rhs):
 		a = _force_int(lhs)
-		b = _force_int(_suppress_zero(rhs))
-		return tvm.floormod(a,b)
+		b = _suppress_zero(_force_int(rhs))
+		return tir.floormod(a,b)
 
 	def apply_np(lhs,rhs):
-		return lambda : floor(int(lhs()) % int(_suppress_zero(rhs())))
+		return lambda : floor(int(lhs()) % _suppress_zero(int(rhs())))
 
 class TruncDiv(BinaryOp):
 	def apply(lhs,rhs):
 		a = _force_int(lhs)
-		b = _force_int(_suppress_zero(rhs))
-		return tvm.truncdiv(a,b)
+		b = _suppress_zero(_force_int(rhs))
+		return tir.truncdiv(a,b)
 
 	def apply_np(lhs,rhs):
-		return lambda : int(int(lhs()) / int(_suppress_zero(rhs())))
+		return lambda : int(int(lhs()) / _suppress_zero(int(rhs())))
 
 class TruncMod(BinaryOp):
 	def apply(lhs,rhs):
 		a = _force_int(lhs)
-		b = _force_int(_suppress_zero(rhs))
-		return tvm.truncmod(a,b)
+		b = _suppress_zero(_force_int(rhs))
+		return tir.truncmod(a,b)
 
 	def apply_np(lhs,rhs):
-		return lambda : floor(int(lhs()) % int(_suppress_zero(rhs())))
+		return lambda : floor(int(lhs()) % abs(_suppress_zero(int(rhs()))))
 
 class IndexDiv(BinaryOp):
-	def apply(lhs,rhs):
-		a = _force_int(lhs)
-		b = _force_int(_suppress_zero(rhs))
-		return tvm.indexdiv(a,b)
-
-	def apply_np(lhs,rhs):
-		return lambda : int(int(lhs()) / int(_suppress_zero(rhs())))
+	"""
+	Implemented as floordiv in tvm  
+	"""
 
 class IndexMod(BinaryOp):
-	def apply(lhs,rhs):
-		a = _force_int(lhs)
-		b = _force_int(_suppress_zero(rhs))
-		return tvm.indexmod(a,b)		
-
-	def apply_np(lhs,rhs):
-		return lambda : floor(int(lhs()) % int(_suppress_zero(rhs())))
+	"""
+	Implemented as floormod in tvm
+	"""
 
 class BitwiseAnd(BinaryOp):
 	def apply(lhs,rhs):
@@ -214,72 +208,78 @@ class BitwiseXor(BinaryOp):
 
 class ShiftRight(BinaryOp):
 	def apply(lhs,rhs):
-		return  _force_int(lhs) >> _force_int(rhs)
+		return  _force_int(lhs) >> tir.abs(_force_int(rhs))
 
 	def apply_np(lhs,rhs):
-		return lambda : int(lhs()) >> int(rhs())
+		return lambda : int(lhs()) >> abs(int(rhs()))
 
 class ShiftLeft(BinaryOp):
 	def apply(lhs,rhs):
-		return  _force_int(lhs) << _force_int(rhs)
+		return  _force_int(lhs) << tir.abs(_force_int(rhs))
 
 	def apply_np(lhs,rhs):
-		return lambda : int(lhs()) << int(rhs())
+		return lambda : int(lhs()) << abs(int(rhs()))
 
 class GT(BinaryOp):
 	def apply(lhs,rhs):
-		return rhs > lhs
+		return lhs > rhs
 
 	def apply_np(lhs,rhs):
 		return lambda : lhs() > rhs()	
 
 class GE(BinaryOp):
 	def apply(lhs,rhs):
-		return rhs >= lhs
+		return lhs >= rhs
 
 	def apply_np(lhs,rhs):
 		return lambda : lhs() >= rhs()	
 
 class LT(BinaryOp):
 	def apply(lhs,rhs):
-		return rhs < lhs
+		return lhs < rhs
 
 	def apply_np(lhs,rhs):
 		return lambda : lhs() < rhs()	
 
 class LE(BinaryOp):
 	def apply(lhs,rhs):
-		return rhs <= lhs
+		return lhs <= rhs
 
 	def apply_np(lhs,rhs):
 		return lambda : lhs() <= rhs()	
 
 class EQ(BinaryOp):
 	def apply(lhs,rhs):
-		return (rhs == lhs).asobject() # EqualOp is deferred eqOp in python
+		res = lhs == rhs
+		if (isinstance(res,bool)):
+			return res
+		return res.asobject() # EqualOp is deferred eqOp in python
 
 	def apply_np(lhs,rhs):
 		return lambda : lhs() == rhs()
 
 class NE(BinaryOp):
 	def apply(lhs,rhs):
-		return (rhs != lhs).asobject()
+		res = lhs != rhs
+		if (isinstance(res,bool)):
+			return res
+		return res.asobject()
 
 	def apply_np(lhs,rhs):
 		return lambda : lhs() != rhs()
 
 class Pow(BinaryOp):
 	def apply(lhs,rhs):
-		#This is tvm.pow in c++ but tvm.power in python
-		return tvm.power(_force_float(lhs),_force_float(rhs))
+		#This is tir.pow in c++ but tir.power in python
+		return tir.power(_force_float(lhs),_force_int(rhs))
 
 	def apply_np(lhs,rhs):
-		return lambda : float(lhs()) ** float(rhs())
+		return lambda : float(lhs()) ** int(rhs())
 
 class Literal(object):
 	nargs = 0
 
-	_last_random = None
+	last_random = None
 
 	def filter():
 		return True
@@ -292,27 +292,27 @@ class Literal(object):
 
 class IntLit(Literal):
 	def apply():
-		IntLit._last_random = random.randint(-100,100)
-		return IntLit._last_random
+		IntLit.last_random = random.randint(-100,100)
+		return IntLit.last_random
 
 	def apply_np():
-		return lambda : IntLit._last_random
+		return lambda : IntLit.last_random
 
 class BoolLit(Literal):
 	def apply():
-		BoolLit._last_random = random.random() >= 0.5
-		return BoolLit._last_random
+		BoolLit.last_random = random.random() >= 0.5
+		return BoolLit.last_random
 
 	def apply_np():
-		return lambda : BoolLit._last_random
+		return lambda : BoolLit.last_random
 
 class NewVar(Literal):
 
-	_last_random = None
+	last_random = None
 
 	_var_selection = ProbabilisticSelection([
-			(1,lambda : tvm.var(name="f"+str(len(SymbolTable.variables)),dtype='float32')),
-			(1,lambda : tvm.var(name="i"+str(len(SymbolTable.variables)),dtype='int32'))
+			(1,lambda : te.var(name="f"+str(len(SymbolTable.variables)),dtype='float32')),
+			(1,lambda : te.var(name="i"+str(len(SymbolTable.variables)),dtype='int32'))
 		])
 
 	def apply():
@@ -329,7 +329,7 @@ class NewVar(Literal):
 
 class ExistingVar(Literal):
 
-	_last_random = None
+	last_random = None
 
 	def apply():
 		if(len(SymbolTable.variables) == 0):
