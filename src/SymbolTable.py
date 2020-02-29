@@ -1,5 +1,3 @@
-
-
 class SymbolTable:
 	"""
 	Stores the create variable metadata
