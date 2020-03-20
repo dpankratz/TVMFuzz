@@ -1,0 +1,118 @@
+####################
+Level=0
+####################
+Expr=i0
+Build times=[14595, 12270, 12541, 11142, 10762], arith mean=12262.0
+Run times=[60660, 49816, 49897, 49905, 54531, 51055, 49800, 49829, 49811, 49781], arith mean=51508.5
+Output=[[1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ ...
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]]
+####################
+Level=1
+####################
+Expr=floormod(i0, i1)
+Build times=[11859, 12510, 12888, 11633, 11368], arith mean=12051.6
+Run times=[60589, 52164, 54275, 52791, 51984, 56894, 52928, 52063, 52025, 53783], arith mean=53949.6
+Output=[[1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ ...
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]]
+####################
+Level=2
+####################
+Expr=floormod(floormod(i0, i1), floormod(i2, i3))
+Build times=[12487, 13080, 14256, 13306, 12365], arith mean=13098.8
+Run times=[59321, 52308, 49851, 49859, 49757, 49820, 56653, 49846, 49816, 50127], arith mean=51735.8
+Output=[[1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ ...
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]]
+####################
+Level=3
+####################
+Expr=floormod(floormod(floormod(i0, i1), floormod(i2, i3)), floormod(floormod(i4, i5), floormod(i6, i7)))
+Build times=[14865, 16070, 16352, 15583, 14667], arith mean=15507.4
+Run times=[64156, 52052, 50715, 50149, 50204, 50234, 55716, 50346, 50271, 50237], arith mean=52408.0
+Output=[[1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ ...
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]]
+####################
+Level=4
+####################
+Expr=floormod(floormod(floormod(floormod(i0, i1), floormod(i2, i3)), floormod(floormod(i4, i5), floormod(i6, i7))), floormod(floormod(floormod(i8, i9), floormod(i10, i11)), floormod(floormod(i12, i13), floormod(i14, i15))))
+Build times=[21797, 22600, 20744, 20380, 20356], arith mean=21175.4
+Run times=[66808, 51833, 49959, 49902, 49840, 52510, 53374, 49953, 50001, 50178], arith mean=52435.8
+Output=[[1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ ...
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]]
+####################
+Level=5
+####################
+Expr=floormod(floormod(floormod(floormod(floormod(i0, i1), floormod(i2, i3)), floormod(floormod(i4, i5), floormod(i6, i7))), floormod(floormod(floormod(i8, i9), floormod(i10, i11)), floormod(floormod(i12, i13), floormod(i14, i15)))), floormod(floormod(floormod(floormod(i16, i17), floormod(i18, i19)), floormod(floormod(i20, i21), floormod(i22, i23))), floormod(floormod(floormod(i24, i25), floormod(i26, i27)), floormod(floormod(i28, i29), floormod(i30, i31)))))
+Build times=[37931, 36638, 35994, 36807, 36378], arith mean=36749.6
+Run times=[77778, 52117, 52124, 56540, 53386, 52033, 52880, 53689, 52230, 52082], arith mean=55485.9
+Output=[[1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ ...
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]]
+####################
+Level=6
+####################
+Expr=floormod(floormod(floormod(floormod(floormod(floormod(i0, i1), floormod(i2, i3)), floormod(floormod(i4, i5), floormod(i6, i7))), floormod(floormod(floormod(i8, i9), floormod(i10, i11)), floormod(floormod(i12, i13), floormod(i14, i15)))), floormod(floormod(floormod(floormod(i16, i17), floormod(i18, i19)), floormod(floormod(i20, i21), floormod(i22, i23))), floormod(floormod(floormod(i24, i25), floormod(i26, i27)), floormod(floormod(i28, i29), floormod(i30, i31))))), floormod(floormod(floormod(floormod(floormod(i32, i33), floormod(i34, i35)), floormod(floormod(i36, i37), floormod(i38, i39))), floormod(floormod(floormod(i40, i41), floormod(i42, i43)), floormod(floormod(i44, i45), floormod(i46, i47)))), floormod(floormod(floormod(floormod(i48, i49), floormod(i50, i51)), floormod(floormod(i52, i53), floormod(i54, i55))), floormod(floormod(floormod(i56, i57), floormod(i58, i59)), floormod(floormod(i60, i61), floormod(i62, i63))))))
+Build times=[78797, 76281, 76622, 75235, 76756], arith mean=76738.2
+Run times=[99541, 50125, 49892, 50006, 50125, 50118, 49817, 50076, 56288, 51477], arith mean=55746.5
+Output=[[1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ ...
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]]
+####################
+Level=7
+####################
+Expr=floormod(floormod(floormod(floormod(floormod(floormod(floormod(i0, i1), floormod(i2, i3)), floormod(floormod(i4, i5), floormod(i6, i7))), floormod(floormod(floormod(i8, i9), floormod(i10, i11)), floormod(floormod(i12, i13), floormod(i14, i15)))), floormod(floormod(floormod(floormod(i16, i17), floormod(i18, i19)), floormod(floormod(i20, i21), floormod(i22, i23))), floormod(floormod(floormod(i24, i25), floormod(i26, i27)), floormod(floormod(i28, i29), floormod(i30, i31))))), floormod(floormod(floormod(floormod(floormod(i32, i33), floormod(i34, i35)), floormod(floormod(i36, i37), floormod(i38, i39))), floormod(floormod(floormod(i40, i41), floormod(i42, i43)), floormod(floormod(i44, i45), floormod(i46, i47)))), floormod(floormod(floormod(floormod(i48, i49), floormod(i50, i51)), floormod(floormod(i52, i53), floormod(i54, i55))), floormod(floormod(floormod(i56, i57), floormod(i58, i59)), floormod(floormod(i60, i61), floormod(i62, i63)))))), floormod(floormod(floormod(floormod(floormod(floormod(i64, i65), floormod(i66, i67)), floormod(floormod(i68, i69), floormod(i70, i71))), floormod(floormod(floormod(i72, i73), floormod(i74, i75)), floormod(floormod(i76, i77), floormod(i78, i79)))), floormod(floormod(floormod(floormod(i80, i81), floormod(i82, i83)), floormod(floormod(i84, i85), floormod(i86, i87))), floormod(floormod(floormod(i88, i89), floormod(i90, i91)), floormod(floormod(i92, i93), floormod(i94, i95))))), floormod(floormod(floormod(floormod(floormod(i96, i97), floormod(i98, i99)), floormod(floormod(i100, i101), floormod(i102, i103))), floormod(floormod(floormod(i104, i105), floormod(i106, i107)), floormod(floormod(i108, i109), floormod(i110, i111)))), floormod(floormod(floormod(floormod(i112, i113), floormod(i114, i115)), floormod(floormod(i116, i117), floormod(i118, i119))), floormod(floormod(floormod(i120, i121), floormod(i122, i123)), floormod(floormod(i124, i125), floormod(i126, i127)))))))
+Build times=[208853, 205662, 209112, 205431, 206921], arith mean=207195.8
+Run times=[157627, 52527, 52185, 52459, 52205, 52378, 52327, 52420, 52358, 52243], arith mean=62872.9
+Output=[[1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ ...
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]]
+####################
+Level=8
+####################
+Expr=floormod(floormod(floormod(floormod(floormod(floormod(floormod(floormod(i0, i1), floormod(i2, i3)), floormod(floormod(i4, i5), floormod(i6, i7))), floormod(floormod(floormod(i8, i9), floormod(i10, i11)), floormod(floormod(i12, i13), floormod(i14, i15)))), floormod(floormod(floormod(floormod(i16, i17), floormod(i18, i19)), floormod(floormod(i20, i21), floormod(i22, i23))), floormod(floormod(floormod(i24, i25), floormod(i26, i27)), floormod(floormod(i28, i29), floormod(i30, i31))))), floormod(floormod(floormod(floormod(floormod(i32, i33), floormod(i34, i35)), floormod(floormod(i36, i37), floormod(i38, i39))), floormod(floormod(floormod(i40, i41), floormod(i42, i43)), floormod(floormod(i44, i45), floormod(i46, i47)))), floormod(floormod(floormod(floormod(i48, i49), floormod(i50, i51)), floormod(floormod(i52, i53), floormod(i54, i55))), floormod(floormod(floormod(i56, i57), floormod(i58, i59)), floormod(floormod(i60, i61), floormod(i62, i63)))))), floormod(floormod(floormod(floormod(floormod(floormod(i64, i65), floormod(i66, i67)), floormod(floormod(i68, i69), floormod(i70, i71))), floormod(floormod(floormod(i72, i73), floormod(i74, i75)), floormod(floormod(i76, i77), floormod(i78, i79)))), floormod(floormod(floormod(floormod(i80, i81), floormod(i82, i83)), floormod(floormod(i84, i85), floormod(i86, i87))), floormod(floormod(floormod(i88, i89), floormod(i90, i91)), floormod(floormod(i92, i93), floormod(i94, i95))))), floormod(floormod(floormod(floormod(floormod(i96, i97), floormod(i98, i99)), floormod(floormod(i100, i101), floormod(i102, i103))), floormod(floormod(floormod(i104, i105), floormod(i106, i107)), floormod(floormod(i108, i109), floormod(i110, i111)))), floormod(floormod(floormod(floormod(i112, i113), floormod(i114, i115)), floormod(floormod(i116, i117), floormod(i118, i119))), floormod(floormod(floormod(i120, i121), floormod(i122, i123)), floormod(floormod(i124, i125), floormod(i126, i127))))))), floormod(floormod(floormod(floormod(floormod(floormod(floormod(i128, i129), floormod(i130, i131)), floormod(floormod(i132, i133), floormod(i134, i135))), floormod(floormod(floormod(i136, i137), floormod(i138, i139)), floormod(floormod(i140, i141), floormod(i142, i143)))), floormod(floormod(floormod(floormod(i144, i145), floormod(i146, i147)), floormod(floormod(i148, i149), floormod(i150, i151))), floormod(floormod(floormod(i152, i153), floormod(i154, i155)), floormod(floormod(i156, i157), floormod(i158, i159))))), floormod(floormod(floormod(floormod(floormod(i160, i161), floormod(i162, i163)), floormod(floormod(i164, i165), floormod(i166, i167))), floormod(floormod(floormod(i168, i169), floormod(i170, i171)), floormod(floormod(i172, i173), floormod(i174, i175)))), floormod(floormod(floormod(floormod(i176, i177), floormod(i178, i179)), floormod(floormod(i180, i181), floormod(i182, i183))), floormod(floormod(floormod(i184, i185), floormod(i186, i187)), floormod(floormod(i188, i189), floormod(i190, i191)))))), floormod(floormod(floormod(floormod(floormod(floormod(i192, i193), floormod(i194, i195)), floormod(floormod(i196, i197), floormod(i198, i199))), floormod(floormod(floormod(i200, i201), floormod(i202, i203)), floormod(floormod(i204, i205), floormod(i206, i207)))), floormod(floormod(floormod(floormod(i208, i209), floormod(i210, i211)), floormod(floormod(i212, i213), floormod(i214, i215))), floormod(floormod(floormod(i216, i217), floormod(i218, i219)), floormod(floormod(i220, i221), floormod(i222, i223))))), floormod(floormod(floormod(floormod(floormod(i224, i225), floormod(i226, i227)), floormod(floormod(i228, i229), floormod(i230, i231))), floormod(floormod(floormod(i232, i233), floormod(i234, i235)), floormod(floormod(i236, i237), floormod(i238, i239)))), floormod(floormod(floormod(floormod(i240, i241), floormod(i242, i243)), floormod(floormod(i244, i245), floormod(i246, i247))), floormod(floormod(floormod(i248, i249), floormod(i250, i251)), floormod(floormod(i252, i253), floormod(i254, i255))))))))
+Build times=[682634, 679208, 686707, 680494, 675572], arith mean=680923.0
+Run times=[288366, 49980, 49911, 50115, 49922, 49907, 49899, 50045, 50014, 50025], arith mean=73818.4
+Output=[[1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ ...
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]
+ [1 1 1 ... 1 1 1]]
+Overall build_time_avgs=[12262.0, 12051.6, 13098.8, 15507.4, 21175.4, 36749.6, 76738.2, 207195.8, 680923.0] and run_times_avgs=[51508.5, 53949.6, 51735.8, 52408.0, 52435.8, 55485.9, 55746.5, 62872.9, 73818.4]
