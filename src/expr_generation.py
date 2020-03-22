@@ -3,11 +3,12 @@ from tvm import te,tir
 import random
 import traceback
 import sys 
-from ProbabilisticSelection import ProbabilisticSelection
-from Expression import *
+from probabilistic_selection import ProbabilisticSelection
+from expression import *
 from generation_node import GenerationNode
-from Util import dtype_is_float,dtype_is_int
+from util import dtype_is_float,dtype_is_int
 
+_TRINARY_OP_WEIGHT = 1
 _BINARY_OP_WEIGHT = 1
 _DIV_WEIGHT = 1
 _UNARY_WEIGHT = 1
@@ -18,6 +19,8 @@ _PLACEHOLDER_WEIGHT = 4
 # Specify the generation proabilities of each respective option
 
 _expr_selection = ProbabilisticSelection([
+	(_TRINARY_OP_WEIGHT, Select),
+
 	(_BINARY_OP_WEIGHT , Add),
 	(_BINARY_OP_WEIGHT , Sub),
 	(_BINARY_OP_WEIGHT , Mul),
@@ -40,12 +43,13 @@ _expr_selection = ProbabilisticSelection([
 	(_UNARY_WEIGHT, Neg),
 	(_UNARY_WEIGHT, BitwiseNeg),
 	(_UNARY_WEIGHT, Abs),
+	(_UNARY_WEIGHT, Floor),
 
-	#(_DIV_WEIGHT, Mod), #Currently bugged
+	(_DIV_WEIGHT, FloorMod),
 	(_DIV_WEIGHT, FloorDiv),
 	(_DIV_WEIGHT, FloorMod),
 	(_DIV_WEIGHT, TruncDiv),
-	(_DIV_WEIGHT, TruncMod),
+	#(_DIV_WEIGHT, TruncMod),
 	(_LIT_WEIGHT, IntLit),
 	(_LIT_WEIGHT, BoolLit),
 	(_VAR_WEIGHT, ExistingVar),
@@ -53,8 +57,8 @@ _expr_selection = ProbabilisticSelection([
 	
 	(1 , NewVar),
 
-	(8, None) #Terminate recursion
-
+	(9, None) #Terminate recursion
+		
 ])
 
 _nonrecursive_selection = ProbabilisticSelection([
@@ -162,17 +166,15 @@ def generate_tvm_and_np_tree():
 	def _generate_expr(depth):
 		
 		expr = _expr_selection.select()
-		if(depth > 100 or expr == None):
+		if(depth > 10 or expr == None):
+			#max number of nodes is given by k ** depth where k is the maximum k-nary expr,
 			term = _nonrecursive_selection.select()
 			return GenerationNode(term)
-		if(expr.nargs == 0):
-			return GenerationNode(expr)
-		elif(expr.nargs == 1):
-			op = _generate_expr(depth + 1)
-			return GenerationNode(expr,[op])
-		elif(expr.nargs == 2):
-			ops = [_generate_expr(depth + 1) , _generate_expr(depth + 1)]
-			return GenerationNode(expr,ops)
+
+		ops = []
+		for _ in range(expr.nargs):
+			ops.append(_generate_expr(depth + 1))
+		return GenerationNode(expr,ops)
 
 	return _generate_expr(0)
 

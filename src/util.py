@@ -26,3 +26,4 @@ def get_literal_value(e):
 	if(isinstance(e,((tir.expr.IntImm,tir.expr.FloatImm)))):
 		return e.value
 	return None
+

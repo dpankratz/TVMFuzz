@@ -10,18 +10,16 @@ will return the same output as the Expr
 
 import tvm
 from tvm import te,tir
-from ProbabilisticSelection import ProbabilisticSelection
+from probabilistic_selection import ProbabilisticSelection
 import random
 from math import floor,ceil
-from SymbolTable import SymbolTable
-from Util import *
+from symboltable import SymbolTable
+from util import *
 
 def _suppress_zero(rhs):
-	if(rhs == 0):
-		return 1
-	if(isinstance(rhs,(tir.expr.IntImm,tir.expr.FloatImm)) and ceil(rhs.value) == 0):
-		return 1
-	return rhs
+	if(isinstance(rhs,(tir.expr.ExprOp))):
+		return tir.Select(rhs == 0, 4, rhs)
+	return 4 if rhs == 0 else rhs
 
 def _force_int(e, np=False):
 	if (dtype_is_int(e)):
@@ -70,8 +68,19 @@ class Not(UnaryOp):
 	Not supported by tvm 
 	"""
 
+class Floor(UnaryOp):
+	def apply(e):
+		return tir.floor(e)
 
+	def apply_np(e):
+		return lambda : floor(e())
 
+class Ceil(UnaryOp):
+	def apply(e):
+		return tir.ceil(e)
+
+	def apply_np(e):
+		return lambda : ceil(e())
 
 
 class BinaryOp(object):
@@ -146,8 +155,9 @@ class FloorDiv(BinaryOp):
 		return tir.floordiv(a,b)
 
 	def apply_np(lhs,rhs):
-		return lambda : int(lhs()) // _suppress_zero(int(rhs()))
+		return lambda : floor(int(lhs()) / _suppress_zero(int(rhs())))
 
+#floor mod information https://github.com/apache/incubator-tvm/topi/include/topi/broadcast.h
 class FloorMod(BinaryOp):
 	def apply(lhs,rhs):
 		a = _force_int(lhs)
@@ -155,7 +165,11 @@ class FloorMod(BinaryOp):
 		return tir.floormod(a,b)
 
 	def apply_np(lhs,rhs):
-		return lambda : floor(int(lhs()) % _suppress_zero(int(rhs())))
+		return lambda : FloorMod._floor_mod(int(lhs()),_suppress_zero(int(rhs())))
+
+	def _floor_mod(a,b):
+		#avoid unnecssary evaluations with helper function
+		return a - (floor(a / b) * b)
 
 class TruncDiv(BinaryOp):
 	def apply(lhs,rhs):
@@ -208,17 +222,17 @@ class BitwiseXor(BinaryOp):
 
 class ShiftRight(BinaryOp):
 	def apply(lhs,rhs):
-		return  _force_int(lhs) >> tir.abs(_force_int(rhs))
+		return  tir.abs(_force_int(lhs)) >> tir.abs(_force_int(rhs))
 
 	def apply_np(lhs,rhs):
-		return lambda : int(lhs()) >> abs(int(rhs()))
+		return lambda : abs(int(lhs())) >> abs(int(rhs()))
 
 class ShiftLeft(BinaryOp):
 	def apply(lhs,rhs):
-		return  _force_int(lhs) << tir.abs(_force_int(rhs))
+		return  tir.abs(_force_int(lhs)) << tir.abs(_force_int(rhs))
 
 	def apply_np(lhs,rhs):
-		return lambda : int(lhs()) << abs(int(rhs()))
+		return lambda : abs(int(lhs())) << abs(int(rhs()))
 
 class GT(BinaryOp):
 	def apply(lhs,rhs):
@@ -271,10 +285,29 @@ class NE(BinaryOp):
 class Pow(BinaryOp):
 	def apply(lhs,rhs):
 		#This is tir.pow in c++ but tir.power in python
-		return tir.power(_force_float(lhs),_force_int(rhs))
+		return tir.power(_suppress_zero(_force_float(lhs)),_force_int(rhs))
 
 	def apply_np(lhs,rhs):
-		return lambda : float(lhs()) ** int(rhs())
+		return lambda : _suppress_zero(float(lhs())) ** int(rhs())
+
+class TrinaryOp(object):
+	nargs = 3
+
+	def apply(arg_one,arg_two,arg_three):
+		raise NotImplementedError
+
+	def apply_np(arg_one,arg_two,arg_three):
+		raise NotImplementedError
+
+
+class Select(TrinaryOp):
+
+	def apply(condition,true_expr,false_expr):
+		return tir.Select(tir.Cast('bool',condition),_force_int(true_expr),_force_int(false_expr))
+
+	def apply_np(condition,true_expr,false_expr):
+		return lambda : int(true_expr()) if bool(condition()) else int(false_expr())
+
 
 class Literal(object):
 	nargs = 0
@@ -291,20 +324,27 @@ class Literal(object):
 		raise NotImplementedError
 
 class IntLit(Literal):
+
+	last_random = None
+
 	def apply():
 		IntLit.last_random = random.randint(-100,100)
 		return IntLit.last_random
 
 	def apply_np():
-		return lambda : IntLit.last_random
+		val = IntLit.last_random
+		return lambda : val
 
 class BoolLit(Literal):
+
+	last_random = None
 	def apply():
 		BoolLit.last_random = random.random() >= 0.5
 		return BoolLit.last_random
 
 	def apply_np():
-		return lambda : BoolLit.last_random
+		val = BoolLit.last_random
+		return lambda : val
 
 class NewVar(Literal):
 
@@ -318,12 +358,12 @@ class NewVar(Literal):
 	def apply():
 		new_var = NewVar._var_selection.select()()
 		SymbolTable.variables.append(new_var)
-		NewVar._last_random = new_var.name
+		NewVar.last_random = new_var.name
 		return new_var
 
 	def apply_np():
-		#this access needs to happen outside of the lambda to materialize the literal since otherwise it will accessing a future value of _last_random
-		name = NewVar._last_random
+		#this access needs to happen outside of the lambda to materialize the literal since otherwise it will accessing a future value of last_random
+		name = NewVar.last_random
 		return lambda : SymbolTable.binds[name]
 
 
@@ -334,15 +374,15 @@ class ExistingVar(Literal):
 	def apply():
 		if(len(SymbolTable.variables) == 0):
 			new_var = NewVar.apply()
-			ExistingVar._last_random = new_var.name
+			ExistingVar.last_random = new_var.name
 			return new_var
 		rand_var =  SymbolTable.variables[random.randint(0,len(SymbolTable.variables) - 1)]
-		ExistingVar._last_random = rand_var.name
+		ExistingVar.last_random = rand_var.name
 		return rand_var
 
 	def apply_np():
-		#this access needs to happen outside of the lambda to materialize the literal since otherwise it will accessing a future value of _last_random
-		name = ExistingVar._last_random
+		#this access needs to happen outside of the lambda to materialize the literal since otherwise it will accessing a future value of last_random
+		name = ExistingVar.last_random
 		return lambda : SymbolTable.binds[name]
 
 
@@ -356,5 +396,8 @@ if __name__ == "__main__":
 
 	i0 = -1
 	f0 = -1.0
+
+	SymbolTable.variables = ['i0','f0']
+	SymbolTable.binds = {"i0":-1,'f0':-1.0}
 	print(c_tvm)
 	print(c_np())
