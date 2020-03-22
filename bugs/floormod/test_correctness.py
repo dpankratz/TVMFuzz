@@ -2,13 +2,27 @@
 import tvm
 from datetime import datetime
 from tvm import te,tir
-from math import fmod
+from math import floor
 import numpy as np
-from topi import floor_mod
 
 
-def floormod_intrin(a,b):
-	 return a - (tir.Cast(a.dtype,tir.floor(tir.Cast('float64',a) / tir.Cast('float64',b))) * b)
+
+"""
+Definition of floorDiv(a,b) is floor(a / b)
+floorMod is defined w.r.t floorDiv as 
+floorDiv(a, b) * b + floorMod(a, b) == a
+
+which gives
+
+floorMod(a,b) = a - floorDiv(a, b) * b
+
+substituting def of floorDiv gives
+
+floorMod(a,b) = a - floor(a / b) * b
+"""
+
+def floormod(a,b):
+	 return a - floor(a / b) * b
 
 DIM = 1000
 HDIM = 500
@@ -27,7 +41,7 @@ out = c_tvm.asnumpy()
 for i in range(DIM):
 	for j in range(DIM):
 		res = out[i][j]
-		res2 = floor_mod(DIM/2 - i, j + 1).value
+		res2 = floormod(DIM/2 - i, j + 1)
 		if res != res2:
 			print(i,j,res,res2)
 			assert False
@@ -40,7 +54,7 @@ out = c_tvm.asnumpy()
 for i in range(DIM):
 	for j in range(DIM):
 		res = out[i][j]
-		res2 = floor_mod(DIM/2 - i, j + 1).value
+		res2 = floormod(DIM/2 - i, j + 1)
 		if res != res2:
 			print(i,j,res,res2)
 			assert False
