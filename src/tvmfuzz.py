@@ -16,9 +16,9 @@ root = generate_tvm_and_np_tree()
 
 tvm_expr = root.emit_tvm()
 
-print(root)
+print("tree={0}\n".format(root))
 
-print(tvm_expr)
+print("tvm expr={0}\n".format(tvm_expr))
 np_expr = root.emit_np()
 
 

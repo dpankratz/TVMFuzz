@@ -18,7 +18,10 @@ from util import *
 
 def _suppress_zero(rhs):
 	if(isinstance(rhs,(tir.expr.ExprOp))):
-		return tir.Select(rhs == 0, 4, rhs)
+		if(dtype_is_float(rhs)):
+			return tir.Select(rhs == 0, 4.0, rhs)
+		elif(dtype_is_int(rhs)):
+			return tir.Select(rhs == 0, 4, rhs)
 	return 4 if rhs == 0 else rhs
 
 def _force_int(e, np=False):
@@ -327,7 +330,9 @@ class IntLit(Literal):
 
 	last_random = None
 
-	def apply():
+	def apply(val = None):
+		if val:
+			return val
 		IntLit.last_random = random.randint(-100,100)
 		return IntLit.last_random
 
@@ -338,7 +343,9 @@ class IntLit(Literal):
 class BoolLit(Literal):
 
 	last_random = None
-	def apply():
+	def apply(val = None):
+		if val:
+			return val
 		BoolLit.last_random = random.random() >= 0.5
 		return BoolLit.last_random
 
@@ -355,7 +362,11 @@ class NewVar(Literal):
 			(1,lambda : te.var(name="i"+str(len(SymbolTable.variables)),dtype='int32'))
 		])
 
-	def apply():
+	def apply(name = None):
+		if name:
+			var = te.var(name=name,dtype='int32' if name.startswith('i') else 'float32')
+			SymbolTable.variables.append(var)
+			return SymbolTable.variables[-1]
 		new_var = NewVar._var_selection.select()()
 		SymbolTable.variables.append(new_var)
 		NewVar.last_random = new_var.name
@@ -371,7 +382,13 @@ class ExistingVar(Literal):
 
 	last_random = None
 
-	def apply():
+	def apply(name = None):
+		if name:
+			for var in SymbolTable.variables:
+				if(var.name == name):
+					return var
+			return NewVar.apply(name)
+
 		if(len(SymbolTable.variables) == 0):
 			new_var = NewVar.apply()
 			ExistingVar.last_random = new_var.name

@@ -77,10 +77,15 @@ class GenerationNode(object):
 
 	def __str__(self):
 		if (len(self.m_args) == 0):
-			return self.m_op.__name__ + ("(" + str(self._random) + ")" if self._random != None else "")
+			last_random_str = ""
+			if isinstance(self._random,str):
+				last_random_str += "\'" + self._random + "\'"
+			else: 
+				last_random_str = str(self._random)
+			return self.m_op.__name__ + (".apply(" + last_random_str + ")" if self._random != None else "")
 
 
-		ret = self.m_op.__name__ + "("
+		ret = self.m_op.__name__ + ".apply("
 		body = ""
 		for i in range(len(self.m_args)):
 			body = body + str(self.m_args[i]) + ("," if i < len(self.m_args) - 1 else "")
