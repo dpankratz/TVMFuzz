@@ -12,7 +12,7 @@ import tvm
 from tvm import te,tir
 from probabilistic_selection import ProbabilisticSelection
 import random
-from math import floor,ceil
+from math import floor,ceil,log2,log10,trunc
 from symboltable import SymbolTable
 from util import *
 
@@ -24,15 +24,26 @@ def _suppress_zero(rhs):
 			return tir.Select(rhs == 0, 4, rhs)
 	return 4 if rhs == 0 else rhs
 
-def _force_int(e, np=False):
+def _force_int(e):
 	if (dtype_is_int(e)):
 		return e
 	return tir.expr.Cast('int32',e)
 
-def _force_float(e,np=False):
+def _force_float(e):
 	if (dtype_is_float(e)):
 		return e
 	return tir.expr.Cast('float32',e)
+
+def _force_not_uint(e):
+	if dtype_is_uint(e):
+		return tir.expr.Cast('int32',e)
+	return e
+
+def _clamp_tvm(e,low,high):
+	return tir.min(tir.max(e,low),high)
+
+def _clamp_np(e,low,high):
+	return min(max(e,low),high)
 
 class UnaryOp(object):
 	nargs = 1
@@ -43,11 +54,11 @@ class UnaryOp(object):
 		raise NotImplementedError
 
 	def apply_np(e):
-		return lambda : UnaryOp.apply_np(e)
+		raise NotImplementedError
 
 class Neg(UnaryOp):
 	def apply(e):
-		return -e
+		return -_force_not_uint(e)
 
 	def apply_np(e):
 		return lambda : -e()
@@ -65,11 +76,6 @@ class Abs(UnaryOp):
 
 	def apply_np(e):
 		return lambda : abs(e())
-
-class Not(UnaryOp):
-	"""
-	Not supported by tvm 
-	"""
 
 class Floor(UnaryOp):
 	def apply(e):
@@ -107,14 +113,11 @@ class Add(BinaryOp):
 
 class Sub(BinaryOp):
 	def apply(lhs,rhs):
-		return tir.Select(tir.expr.Cast('bool',rhs > lhs), rhs - lhs, lhs - rhs) #Prevent underflow 
+		return _force_not_uint(lhs) - _force_not_uint(rhs) #Prevent underflow 
 
 	def apply_np(lhs,rhs):
-		return lambda : Sub._select(lhs(),rhs())
+		return lambda : lhs() - rhs()
 
-	def _select(lhs,rhs):
-		#Use helper function to avoid evaluating each expression multiple times
-		return lhs - rhs if lhs > rhs else rhs - lhs
 
 class Mul(BinaryOp):
 	def apply(lhs,rhs):
@@ -190,7 +193,10 @@ class TruncMod(BinaryOp):
 		return tir.truncmod(a,b)
 
 	def apply_np(lhs,rhs):
-		return lambda : floor(int(lhs()) % abs(_suppress_zero(int(rhs()))))
+		return lambda : TruncMod._trunc_mod(int(lhs()), _suppress_zero(int(rhs())))
+
+	def _trunc_mod(a,b):
+		return a - (trunc(a / b) * b)
 
 class IndexDiv(BinaryOp):
 	"""
@@ -225,17 +231,17 @@ class BitwiseXor(BinaryOp):
 
 class ShiftRight(BinaryOp):
 	def apply(lhs,rhs):
-		return  tir.abs(_force_int(lhs)) >> tir.abs(_force_int(rhs))
+		return  tir.abs(_force_int(lhs)) >> tir.min(30,tir.abs(_force_int(rhs)))
 
 	def apply_np(lhs,rhs):
-		return lambda : abs(int(lhs())) >> abs(int(rhs()))
+		return lambda : abs(int(lhs())) >> min(30,abs(int(rhs())))
 
 class ShiftLeft(BinaryOp):
 	def apply(lhs,rhs):
-		return  tir.abs(_force_int(lhs)) << tir.abs(_force_int(rhs))
+		return  tir.abs(_force_int(lhs)) << tir.min(30,tir.abs(_force_int(rhs)))
 
 	def apply_np(lhs,rhs):
-		return lambda : abs(int(lhs())) << abs(int(rhs()))
+		return lambda : abs(int(lhs())) << min(30,abs(int(rhs())))
 
 class GT(BinaryOp):
 	def apply(lhs,rhs):
@@ -306,11 +312,54 @@ class TrinaryOp(object):
 class Select(TrinaryOp):
 
 	def apply(condition,true_expr,false_expr):
-		return tir.Select(tir.Cast('bool',condition),_force_int(true_expr),_force_int(false_expr))
+		return tir.Select(tir.Cast('bool',_clamp_tvm(condition,0,1)),_force_int(true_expr),_force_int(false_expr))
 
 	def apply_np(condition,true_expr,false_expr):
-		return lambda : int(true_expr()) if bool(condition()) else int(false_expr())
+		return lambda : int(true_expr()) if bool(_clamp_np(condition(),0,1)) else int(false_expr())
 
+class IfThenElse(TrinaryOp):
+	def apply(condition,true_expr,false_expr):
+		return tir.if_then_else(tir.Cast('bool',_clamp_tvm(condition,0,1)),true_expr,false_expr)
+
+	def apply_np(condition,true_expr,false_expr):
+		return lambda : true_expr() if bool(_clamp_np(condition(),0,1)) else false_expr()
+
+class KNaryOp(object):
+	nargs = -1
+
+	def apply(*args):
+		raise NotImplementedError
+
+	def apply_np(*args):
+		raise NotImplementedError
+
+class Any(KNaryOp):
+	def apply(*args):
+		bool_args = list(map(lambda x : tir.Cast('bool',_clamp_tvm(x,0,1)),args))
+		return tir.any(*bool_args)
+
+	def apply_np(*args):
+		return lambda : Any._any(*args)
+
+	def _any(*args):
+		for arg in args:
+			if bool(_clamp_np(arg(),0,1)):
+				return True
+		return False
+
+class All(KNaryOp):
+	def apply(*args):
+		bool_args = list(map(lambda x : tir.Cast('bool',_clamp_tvm(x,0,1)),args))
+		return tir.all(*bool_args)
+
+	def apply_np(*args):
+		return lambda : All._all(*args)
+
+	def _all(*args):
+		for arg in args:
+			if not bool(_clamp_np(arg(),0,1)):
+				return False
+		return True
 
 class Literal(object):
 	nargs = 0
@@ -334,7 +383,7 @@ class IntLit(Literal):
 		if val:
 			return val
 		IntLit.last_random = random.randint(-100,100)
-		return IntLit.last_random
+		return tir.IntImm('int32',IntLit.last_random)
 
 	def apply_np():
 		val = IntLit.last_random
@@ -347,7 +396,7 @@ class BoolLit(Literal):
 		if val:
 			return val
 		BoolLit.last_random = random.random() >= 0.5
-		return BoolLit.last_random
+		return tir.IntImm('uint1',BoolLit.last_random)
 
 	def apply_np():
 		val = BoolLit.last_random

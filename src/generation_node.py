@@ -1,4 +1,6 @@
 import traceback
+
+from termcolor import colored
 from test_bed import compare_results,evaluate_tvm_expr,evaluate_np_expr
 from symboltable import SymbolTable
 
@@ -65,7 +67,7 @@ class GenerationNode(object):
 		np_res = evaluate_np_expr(self.m_emitted_np_op)
 		is_equal = compare_results(tvm_res,np_res)
 		if (not is_equal):
-			print("tvm_code={0}".format(self.m_emitted_tvm_op))
+			print("tvm_code={0}".format(colored(self.m_emitted_tvm_op,"yellow")))
 			print("np_res = {0}, tvm_res = {1}".format(np_res,tvm_res))
 			GenerationNode.MISMATCH_CULPRIT = self			
 			return False 

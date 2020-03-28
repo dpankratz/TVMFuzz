@@ -1,5 +1,5 @@
 import __init__
-from Expression import *
+from expression import *
 from test_bed import *
 import numpy as np
 

@@ -3,13 +3,19 @@ from tvm import te,tir
 import numpy as np
 import traceback 
 import signal
+from symboltable import SymbolTable
+from expression import Neg, Add, Any
+from tvmfuzz_config import TVMFuzzConfig
+from termcolor import colored
+from datetime import datetime
 
-signal.signal(signal.SIGSEGV, lambda signum,frame : print("segfault"))
-signal.signal(signal.SIGFPE, lambda signum,frame : print("floating point fault"))
-
-
-def evaluate_tvm_expr(expr,tvm_vars,var_binds,suppress_errors = False):
+def evaluate_tvm_expr(expr,tvm_vars = [],var_binds = [],suppress_errors = False):
 	
+	if len(tvm_vars) == 0:
+		tvm_vars = SymbolTable.variables
+		SymbolTable.populate()
+		var_binds = SymbolTable.binds
+
 	dtype = None
 	if(isinstance(expr,tir.expr.ExprOp)):
 		dtype = expr.dtype
@@ -40,9 +46,6 @@ def evaluate_tvm_expr(expr,tvm_vars,var_binds,suppress_errors = False):
 		if (not suppress_errors):
 			traceback.print_exc()
 		return "Runtime Exception"
-	
-
-
 
 def evaluate_np_expr(expr):
 	try:
