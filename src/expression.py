@@ -2,8 +2,8 @@
 Representation of exprs that can be combined to produce random exprs or random numpy exprs
 Tvm builds the ast by overriding python operators between tir.expr.ExprOp and python types
 
-To have a matching numpy implementation we recreate the AST as a tree of lambda calls such that populating the variables and calling the root node
-will return the same output as the Expr
+To have a matching numpy implementation we can recreate the AST as a tree of lambda calls 
+such that populating the variables and calling the root node will return the same output as the Expr
 
 """
 
@@ -15,6 +15,12 @@ import random
 from math import floor,ceil,log2,log10,trunc
 from symboltable import SymbolTable
 from util import *
+import numpy 
+
+int = numpy.int32
+float = numpy.float32
+bool = numpy.bool
+
 
 def _suppress_zero(rhs):
 	if(isinstance(rhs,(tir.expr.ExprOp))):
@@ -37,6 +43,8 @@ def _force_float(e):
 def _force_not_uint(e):
 	if dtype_is_uint(e):
 		return tir.expr.Cast('int32',e)
+	if isinstance(e,(numpy.bool,numpy.bool_,numpy.uint32)):
+		return int(e)
 	return e
 
 def _clamp_tvm(e,low,high):
@@ -61,7 +69,7 @@ class Neg(UnaryOp):
 		return -_force_not_uint(e)
 
 	def apply_np(e):
-		return lambda : -e()
+		return lambda : -_force_not_uint(e())
 
 class BitwiseNeg(UnaryOp):
 	def apply(e):
@@ -116,7 +124,7 @@ class Sub(BinaryOp):
 		return _force_not_uint(lhs) - _force_not_uint(rhs) #Prevent underflow 
 
 	def apply_np(lhs,rhs):
-		return lambda : lhs() - rhs()
+		return lambda : _force_not_uint(lhs()) - _force_not_uint(rhs())
 
 
 class Mul(BinaryOp):
@@ -234,14 +242,14 @@ class ShiftRight(BinaryOp):
 		return  tir.abs(_force_int(lhs)) >> tir.min(30,tir.abs(_force_int(rhs)))
 
 	def apply_np(lhs,rhs):
-		return lambda : abs(int(lhs())) >> min(30,abs(int(rhs())))
+		return lambda : abs(int(lhs())) >> min(int(30),abs(int(rhs())))
 
 class ShiftLeft(BinaryOp):
 	def apply(lhs,rhs):
 		return  tir.abs(_force_int(lhs)) << tir.min(30,tir.abs(_force_int(rhs)))
 
 	def apply_np(lhs,rhs):
-		return lambda : abs(int(lhs())) << min(30,abs(int(rhs())))
+		return lambda : abs(int(lhs())) << min(int(30),abs(int(rhs())))
 
 class GT(BinaryOp):
 	def apply(lhs,rhs):
@@ -294,10 +302,10 @@ class NE(BinaryOp):
 class Pow(BinaryOp):
 	def apply(lhs,rhs):
 		#This is tir.pow in c++ but tir.power in python
-		return tir.power(_suppress_zero(_force_float(lhs)),_force_int(rhs))
+		return tir.power(_suppress_zero(_force_float(lhs)),_force_float(rhs))
 
 	def apply_np(lhs,rhs):
-		return lambda : _suppress_zero(float(lhs())) ** int(rhs())
+		return lambda : _suppress_zero(float(lhs())) ** float(rhs())
 
 class TrinaryOp(object):
 	nargs = 3
@@ -385,9 +393,10 @@ class IntLit(Literal):
 		IntLit.last_random = random.randint(-100,100)
 		return tir.IntImm('int32',IntLit.last_random)
 
-	def apply_np():
-		val = IntLit.last_random
-		return lambda : val
+	def apply_np(val = None):
+		if not val:
+			val = IntLit.last_random
+		return lambda : int(val)
 
 class BoolLit(Literal):
 
@@ -396,11 +405,12 @@ class BoolLit(Literal):
 		if val:
 			return val
 		BoolLit.last_random = random.random() >= 0.5
-		return tir.IntImm('uint1',BoolLit.last_random)
+		return tir.IntImm('bool',BoolLit.last_random)
 
-	def apply_np():
-		val = BoolLit.last_random
-		return lambda : val
+	def apply_np(val = None):
+		if not val:
+			val = BoolLit.last_random
+		return lambda : bool(val)
 
 class NewVar(Literal):
 
@@ -421,9 +431,9 @@ class NewVar(Literal):
 		NewVar.last_random = new_var.name
 		return new_var
 
-	def apply_np():
-		#this access needs to happen outside of the lambda to materialize the literal since otherwise it will accessing a future value of last_random
-		name = NewVar.last_random
+	def apply_np(name = None):
+		if not name:
+			name = NewVar.last_random
 		return lambda : SymbolTable.binds[name]
 
 
@@ -446,9 +456,9 @@ class ExistingVar(Literal):
 		ExistingVar.last_random = rand_var.name
 		return rand_var
 
-	def apply_np():
-		#this access needs to happen outside of the lambda to materialize the literal since otherwise it will accessing a future value of last_random
-		name = ExistingVar.last_random
+	def apply_np(name = None):
+		if not name:
+			name = ExistingVar.last_random
 		return lambda : SymbolTable.binds[name]
 
 

@@ -1,9 +1,19 @@
 import random
 
 class ProbabilisticSelection:
+	""" Randomly select options from a weight table
+	
+	The probability that a given item is selected is
+	calculated as its weight over the sum of all weights
+	in the table. 
 
+	Parameters
+	----------
+	choices : dict{int, object}
+		Dict of weights and options
+
+	"""
 	def __init__(self,choices):
-
 		total = 0.0
 		for weight,_ in choices:
 			total += weight
@@ -17,6 +27,14 @@ class ProbabilisticSelection:
 
 
 	def select(self):
+		""" Randomly select item from table
+		
+		Returns
+		-------
+		selection : object
+			Object that was selected
+
+		"""
 		rand = random.random()
 		begin = 0
 		for end,val in self.probs:

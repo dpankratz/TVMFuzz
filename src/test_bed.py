@@ -9,12 +9,33 @@ from tvmfuzz_config import TVMFuzzConfig
 from termcolor import colored
 from datetime import datetime
 
-def evaluate_tvm_expr(expr,tvm_vars = [],var_binds = [],suppress_errors = False):
+def evaluate_tvm_expr(expr,suppress_errors = False):
+	""" Evaluate given tvm expr
+
+	This uses the binds in SymbolTable to provide the 
+	variables with their values during evaluation
+
+	Parameters
+	----------
+	expr : tvm.expr.PrimExpr
+		expr to evaluate
+	suppress_errors : bool
+		Set to True to not print error traceback
+		False to print error tracebac
+
+	Returns
+	-------
+	result : int or float or bool or str
+		result of evaluation
+		or "Runtime Error" if there was an 
+		error during evaluation
+	"""
 	
-	if len(tvm_vars) == 0:
-		tvm_vars = SymbolTable.variables
+	if len(SymbolTable.binds) == 0:
 		SymbolTable.populate()
-		var_binds = SymbolTable.binds
+	
+	tvm_vars = SymbolTable.variables
+	var_binds = SymbolTable.binds
 
 	dtype = None
 	if(isinstance(expr,tir.expr.ExprOp)):
@@ -47,7 +68,21 @@ def evaluate_tvm_expr(expr,tvm_vars = [],var_binds = [],suppress_errors = False)
 			traceback.print_exc()
 		return "Runtime Exception"
 
-def evaluate_np_expr(expr):
+def evaluate_np_expr(expr, suppress_errors = False):
+	""" Evaluate numpy expression
+
+	Parameters
+	----------
+	expr : function
+		Root of numpy expression
+
+	Returns
+	-------
+	result : int or float or bool or str
+		result of evaluation
+		or "Runtime Error" if there was an 
+		error during evaluation
+	"""
 	try:
 		return expr()
 	except Exception:
@@ -55,7 +90,15 @@ def evaluate_np_expr(expr):
 		return "Runtime Exception"
 
 def compare_results(result_one,result_two):
-	if(isinstance(result_one,float) or isinstance(result_two,float)):
+	if(isinstance(result_one,(float,np.float32)) or isinstance(result_two,(float,np.float32))):
+		if np.isnan(result_one) and np.isnan(result_two):
+			return True
+		elif np.isinf(result_one) and np.isinf(result_two):
+			if result_one > 0 and result_two > 0:
+				return True
+			elif result_one < 0 and result_two < 0:
+				return True
+			return False
 		return np.isclose(result_one, result_two)
 	return result_one == result_two
 

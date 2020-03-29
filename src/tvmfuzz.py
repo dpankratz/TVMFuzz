@@ -7,18 +7,27 @@ from util import get_literal_value
 import random, sys, traceback, datetime
 
 def run(timestamp = None, repetitions = 1):
+	""" Run the fuzzer 
 
-	seed = timestamp if timestamp else None
+	Parameters
+	----------
+	timestamp : float
+		timestamp value to use for seed
+	repetitions : int
+		number of exprs to generate
+	"""
 
+	quick_tests = []
 
 	for _ in range(repetitions):
-		if not seed:
+		if not timestamp:
 			seed = datetime.datetime.utcnow().timestamp()
 			print("timestamp ={0}\n".format(seed))
-
+		else:
+			print("using timestamp={0}\n".format(timestamp))
+			seed = timestamp
+			timestamp = None
 		random.seed(seed)
-
-		seed = None
 
 		root = generate_tvm_and_np_tree()
 
@@ -33,8 +42,6 @@ def run(timestamp = None, repetitions = 1):
 
 		print("SymbolTable.binds={0}".format(SymbolTable.binds))
 
-		print(evaluate_tvm_expr(tvm_expr,SymbolTable.variables,SymbolTable.binds))
-
 		np_result = evaluate_np_expr(np_expr)
 		if (np_result == "Runtime Exception"):
 			print("np error={0}".format(GenerationNode.NP_CULPRIT))
@@ -46,7 +53,7 @@ def run(timestamp = None, repetitions = 1):
 			tvm_result = lit_value
 			print("tvm result={0} found in front end".format(tvm_result))
 		else:
-			tvm_result = evaluate_tvm_expr(tvm_expr,SymbolTable.variables,SymbolTable.binds)
+			tvm_result = evaluate_tvm_expr(tvm_expr)
 			if(tvm_result == "Runtime Exception"):
 				print("tvm error={0}".format(GenerationNode.TVM_CULPRIT))
 			print("tvm result={0}".format(tvm_result))
@@ -58,14 +65,45 @@ def run(timestamp = None, repetitions = 1):
 			
 			is_equal = compare_results(np_result,tvm_result)
 			print("equal={0}".format(colored("True","green") if is_equal else colored("False","red")))
-			if (not is_equal):
+			if (not is_equal and tvm_result and np_result):
 				root.find_mismatch()
 				print("mismatch={0}".format(colored(GenerationNode.MISMATCH_CULPRIT,"red")))
 				for arg in GenerationNode.MISMATCH_CULPRIT.m_args:
-					print("\t {0} np val={1}, tvm val={2}".format(arg.m_op.__name__,evaluate_np_expr(arg.m_emitted_np_op),evaluate_tvm_expr(arg.m_emitted_tvm_op,SymbolTable.variables,SymbolTable.binds)))
-				if repetitions > 1:
-					print("PRESS ENTER TO CONTINUE FUZZING!")
-					input()
+					print("\t {0} np val={1}, tvm val={2}".format(arg.m_op.__name__,evaluate_np_expr(arg.m_emitted_np_op),evaluate_tvm_expr(arg.m_emitted_tvm_op)))
+
+				quick_test_file_name = _quick_test_file_name(seed)
+				quick_test_file = open(quick_test_file_name,"w")
+				quick_test_file.write(_quick_test_str(GenerationNode.MISMATCH_CULPRIT))
+				quick_test_file.close()
+				quick_tests.append(quick_test_file_name)
+	
+	for quick_test in quick_tests:
+		print("Quick test written to {0}".format(quick_test))
+					
+
+def _quick_test_str(root):
+	""" Create a python program for quick testing
+
+	Returns
+	-------
+	quick_test : str
+		Python program for testing mistmatch
+	"""
+	ret = "import __init__\n"
+	ret += "from symboltable import SymbolTable\n"
+	ret += "from expression import *\n"
+	ret += "from test_bed import evaluate_tvm_expr,evaluate_np_expr\n"
+	ret += "SymbolTable.recover_from_binds(" + str(SymbolTable.binds) + ")\n"
+	ret += "tvm_expr=" + str(root) + "\n"
+	ret += "np_expr=" + str(root).replace("apply", "apply_np") + "\n"
+	ret += "print(evaluate_tvm_expr(tvm_expr))\n"
+	ret += "print(evaluate_np_expr(np_expr))\n"
+	return ret
+
+
+def _quick_test_file_name(timestamp):
+	return "../quicktests/quick_test_" + str(timestamp)
+
 
 if __name__ == "__main__":
 	import argparse

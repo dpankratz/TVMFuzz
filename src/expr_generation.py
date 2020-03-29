@@ -62,7 +62,14 @@ _terminal_selection = ProbabilisticSelection([
 
 
 def generate_tvm_and_np_tree():
+	""" Randomly generate a GenerationNode tree
 
+	Returns
+	-------
+	root : GenerationNode
+		New tree that can generate tvm or np
+		exprs.
+	"""
 	def _generate_expr(depth):
 		
 		expr = _expr_selection.select()
