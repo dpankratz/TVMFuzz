@@ -4,6 +4,7 @@
 
 
 import tvm
+from tvm import tir,te
 import numpy as np
 import sys
 
@@ -11,9 +12,9 @@ try:
 
 	shape = (5,5)
 
-	a = tvm.const(dtype='float32',value=10)
+	a = tir.const(dtype='float32',value=10)
 
-	c = tvm.compute(shape,lambda i,j: a & 1.5 ^ a | ~a) 
+	c = te.compute(shape,lambda i,j: a & 1.5 ^ a | ~a) 
 	#Also affects | , &, ^, ~
 
 	s = tvm.create_schedule([c.op])

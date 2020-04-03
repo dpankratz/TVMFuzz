@@ -17,28 +17,24 @@ def test_div_by_zero():
 	for int_bin_op in [lambda a,b: a % b, lambda a,b: tir.floordiv(a,b), lambda a,b: tir.truncdiv(a,b),
 					lambda a,b: tir.floormod(a,b), lambda a,b: tir.truncmod(a,b) ]:
 		try:
-			print(str(int_bin_op(a,zero)) + " a by zero")
 			int_bin_op(a,zero)
 		except TVMError:
 			pass
 			
 
 		try:	
-			print(str(int_bin_op(two,zero)) + "two by zero")
 			int_bin_op(two,zero)
 		except TVMError:
 			pass
 	
 	for float_bin_op in [lambda a,b: tir.div(a,b), lambda a,b: tir.truncmod(a,b)]:
 		try:
-			print(str(float_bin_op(a,fzero)) + " a by fzero")
 			float_bin_op(a,fzero)
 		except TVMError:
 			pass
 
 
 		try:
-			print(str(float_bin_op(ftwo,fzero)) + "two by fzero")
 			float_bin_op(ftwo,fzero)
 		except TVMError:
 			pass

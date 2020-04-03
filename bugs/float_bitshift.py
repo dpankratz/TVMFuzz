@@ -4,6 +4,7 @@
 
 
 import tvm
+from tvm import tir,te
 import numpy as np
 import sys
 
@@ -12,8 +13,8 @@ hadError = False
 try: 
 
 	shape = (1,1)
-	a = tvm.const(dtype='int32',value=10)
-	c = tvm.compute(shape,lambda i,j: a << 2.0) #this should either be impossible or materialize as a * (2 ** 1.5)
+	a = tir.const(dtype='int32',value=10)
+	c = te.compute(shape,lambda i,j: a << 2.0) #this should either be impossible or materialize as a * (2 ** 1.5)
 	s = tvm.create_schedule([c.op])
 	f = tvm.build(s,[c])
 	c_tvm= tvm.nd.array(np.zeros(shape,dtype='float32'))

@@ -1,89 +1,25 @@
+## TIR
+
+This fuzzer is primarily aimed at testing expressions in TIR (TVM Intermediate Representation). TIR is concerned with the definition and scheduling of operators inspired by the Halide design. Therefore it is not uncommon to be writing expressions over scalars which are later expanded to compute a tensor 'pixelwise'. Therefore bugs involving scalar expressions are directly relevant to expression of tensor computations. 
+
 ## Frontend
 
-Entry point is `tvm.build(inputs=[tvm.Schedule],args=[Buffer/Tensor/Var], target=tvm.target.Target/str, target_host=tvm.target.Target/str,name=str,binds=dict{??})`
-	-can first arg be a list?
-	-can second arg include size_var, const, etc.
+The most basic usage of expressions in TVM is in a statement like this `tvm.compute(shape, lambda i : i + 1)` which computes a vector with elements `(1,...,n)`. The expression provided to the compute function is created as the overall statement is interpreted by the Python environment. In this case `i + 1` is combining a `te.Var` with a Python `int` using the `Expr.__add__` Python operator overriding feature.
 
-Order of args determines order literals need to be passed to final packedFunc. I.e.
-```
-f = tvm.build(s,[b,c,d,a])
+Interestingly some amount of simplification and constant folding occurs at this stage such as `tir.const(13) << 4` becomes a `tir.IntImm` with value 208. 
 
-a_lit = 1
-b_lit = 1.5
-c_lit = 2
-d = tvm.nd.array(np.zeros(shape=shape,dtype=dtype))
+Therefore to test the TVM frontend of creating and combining expressions it is not necessary to output a complete program and rather is possible to quickly create standalone expressions which are *compiled* by simply being interpreted within Python.
 
-f(b_lit,c_lit,d,a_lit) # order correspones to tvm.build call
-```
+A number of front end bugs were discoved by simply combining operators such as `<<, >>, &, %` in an unexpected order with python literals. For example `tvm.const(1) % 2` was acceptable but `2 % tvm.const(1)` produced a crash due to `__rmod__` not being defined.
 
-`tvm.Schedule` is created with `tvm.create_schedule([tvm.tensor.ComputeOp])`
-`tvm.tensor.ComputeOp` is `op` field of `tvm.tensor.Tensor`
-`tvm.tensor.Tensor` is created by `tvm.compute(shape=[tvm.expr],fcompute= indices -> value,name=str,tag=str,attrs=dict{??})`
-`indices->value` is a function of the form `lambda a_0 .... a_i : RHS op LHS`
+## Middle-end
 
-# Compute function
-fcompute is created by the function `tvm.convert` from a lambda function or in the case of it being an intrinsic call is handled by `_api_internal._TensorComputeOp`
+TIR implements a number of compiler passes are run when the commands `tvm.lower` or `tvm.build` are invoked. In the context of this tool, and disregarding crashes, this is tested by comparing the output of generated binary to the ground-truth program.
 
-The interesting case is the lambda function as it is formed by a conglomeration of tvm objects and python instrinics. For example a valid fcompute is:
-```
-a = tvm.var(dtype='float32')
-tvm.compute((a,a),lambda i, j : a + a + 2) 
-```
-To extract the code of a lambda function in python the following code is used:
-```
-a = lambda b : b + 1
-a.__code__
-```
+A middle end bug discovered is that `1 * tir.Cast('bool', 77)` gets changed to `77` by the `RewriteSimplify` pass. This is due to the pass creating a constant with dtype `bool` without ensuring the value provided to the constant is within sane ranges. Subsequently the `1 * ((bool)77)` promotes the `77` back to an `int32` so the end result is `1 * 77 -> 77`.
 
-This behaviour is allowed by the function `convert_to_object` found in `tvm/_ffi/object_generic.py`. It leverages the python module `numbers` to constify ints. It also supports bools.
+## Backend 
 
-The next important line is the following found in `compute` in `tvm/api.py` where `fcompute` is the lambda function:
-`body = fcompute(*[v.var for v in dim_var])`
+Similar to middle-end the LLVM backend can be tested by taking the function produced by `tvm.build`, running it for a given input, and comparing the result to the ground-truth program. 
 
-The way the AST is constructed is using operator overriding in `tvm.expr.Expr`. For example consider the following code:
-```
-a = tvm.var(dtype='float32')
-e = a + 1
-print(type(e))
-# prints tvm.expr.Add
-print(type(e.b))
-# prints tvm.expr.IntImm
-print(type(e.a))
-# prints tvm.expr.Var
-```
-
-# Dependant tensors
-
-TVM allows previously computed tensors to be used in subsequent computations as follows:
-
-```
-a = tvm.var(dtype='float32')
-c = tvm.compute((a,a),lambda i, j : a + a + 2) 
-d = tvm.compute((a/2,a/2), lambda i,j : c[i,j])
-```
-
-Interestingly the manner in which this is handled is as follows:
-```
-a = tvm.var(dtype='float32')
-c = tvm.compute((a,a),lambda i, j : a + a + 2) 
-print(type(c[i,j])) 
-#prints tvm.tensor.TensorSlice
-print((c[i,j] + 1).a)
-#prints compute(i,j)
-print(type((c[i,j] + 1).a))
-#prints tvm.expr.Call
-```
-
-As can be there are function calls that also contain special meaning in TVM.
-
-# Generation strategy
-
-As seen in the **Compute function** section exprs can be developed through operator overriding between `tvm.expr.Expr`s. Thus discovering all expr nodes and operators gives the possibility of generated all possible tvm Exprs. The place to look for this is `tvm/expr.py` which contains subclasses of tvm.expr.Expr as well as the definitions for operation overriding. 
-
-Given the capability to generate arbitrary expressions it remains to generate arbitrary sequences of computations.
-
-Thus tvm front-end is really object oriented programming and operator overriding in python. 
-
-# Expr Promotion
-
-Tvm implements a system for type promotion which upgrades bools to ints and ints to floats where possible. Python implements a similar system.
+A bug discovered in the LLVM backend is that expressions like `2 << 32` with dtype `int32` becomes `undef`. This results in other expressions also becoming `undef` because of rules like `undef + 5 -> undef`. The end result is that all the code from the `tvm.compute` statement is removed in the LLVM backend and the function from `tvm.build` does nothing. 

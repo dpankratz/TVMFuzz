@@ -22,6 +22,12 @@ See this [article](https://github.com/dpankratz/CMPUT664Project/blob/master/docs
 
 Due to TVM periodically having breaking changes I have included a Ubuntu VM image that contains compatible versions of TVMFuzz,TVM, and LLVM.
 
+To use this option:
+1. install virtualbox
+2. import VM
+3. `cd tvmfuzz/src/`
+4. `python3 tvmfuzz.py`
+
 ## Organization
 
 - **bugs** contains bugs that were discovered by the TVMFuzz and fixed in TVM
