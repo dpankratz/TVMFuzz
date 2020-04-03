@@ -15,12 +15,26 @@ See this [article](https://github.com/dpankratz/CMPUT664Project/blob/master/docs
 2. Follow [TVM installation guide](https://docs.tvm.ai/install/from_source.html)
 3. In the `config.cmake` file change `set(USE_LLVM OFF)` to `set(USE_LLVM /usr/bin/llvm-config-8)`
 4. Clone this repository
-5. Run `pip3 install --user numpy termcolor`
+5. Run `pip3 install --user termcolor`
 6. Test the installation by running `python3 tvmfuzz.py`
 
-## VM Image
+If this is not amenable then a dockerfile and VM image are available.
 
-Due to TVM periodically having breaking changes I have included a Ubuntu VM image that contains compatible versions of TVMFuzz,TVM, and LLVM.
+## Dockerfile
+
+To create locally:
+1. `cd docker/`
+2. `make build`
+3. `docker run -it tvmfuzz`
+
+Then the Installation can be tested via `python3 tvmfuzz.py`
+
+To use remote image:
+1. `docker pull dpankratz/tvmfuzz`
+2. `docker run -it dpankratz/tvmfuzz`
+
+## VM Image
+Due to TVM periodically having breaking changes, TVMFuzz also includes a [Ubuntu VM image]() that contains compatible versions of TVMFuzz, TVM, and LLVM.
 
 To use this option:
 1. install virtualbox
