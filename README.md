@@ -34,7 +34,7 @@ To use remote image:
 2. `docker run -it dpankratz/tvmfuzz`
 
 ## VM Image
-Due to TVM periodically having breaking changes, TVMFuzz also includes a [Ubuntu VM image]() that contains compatible versions of TVMFuzz, TVM, and LLVM.
+Due to TVM periodically having breaking changes, TVMFuzz also includes a [Ubuntu VM image](https://drive.google.com/file/d/1b6WdQCPWoj9GQoVNGiw1kbwIMf0DDEIc/view?usp=sharing) that contains compatible versions of TVMFuzz, TVM, and LLVM.
 
 To use this option:
 1. install virtualbox
