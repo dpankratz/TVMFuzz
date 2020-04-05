@@ -11,7 +11,7 @@ The only exception is the directory `floormod` which was a special case where th
 | floormod  | crash | middleend |
 | backend_float_bitwise.py  | crash | backend |
 | bitshift_bounds.py  | wrong code generation | backend |
-| compile_time_casts.py  | wrong code generation | frontend (Const), middleend (RewriteSimplify)|
+| compile_time_casts.py  | wrong code generation | frontend |
 | constant_fold_div_by_zero.py  | crash | frontend |
 | constant_fold_underflow.py  | wrong code generation | frontend|
 | crashing_ops.py  | crash | frontend |
