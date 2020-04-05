@@ -18,3 +18,11 @@ The only exception is the directory `floormod` which was a special case where th
 | float_bitshift.py  | wrong code generation | backend |
 | out_of_bounds_consts.py  | wrong code generation | frontend |
 | rounding_ints.py  | crash | middleend |
+
+## Pull Requests
+1. https://github.com/apache/incubator-tvm/pull/4852
+2. https://github.com/apache/incubator-tvm/pull/4892
+3. https://github.com/apache/incubator-tvm/pull/5026
+4. https://github.com/apache/incubator-tvm/pull/5115
+5. https://github.com/apache/incubator-tvm/pull/5156
+6. TODO Floormod
