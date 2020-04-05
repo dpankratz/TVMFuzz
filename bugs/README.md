@@ -16,3 +16,5 @@ The only exception is the directory `floormod` which was a special case where th
 | constant_fold_underflow.py  | wrong code generation | frontend|
 | crashing_ops.py  | crash | frontend |
 | float_bitshift.py  | wrong code generation | backend |
+| out_of_bounds_consts.py  | wrong code generation | frontend |
+| rounding_ints.py  | crash | middleend |
