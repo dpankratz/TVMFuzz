@@ -6,7 +6,7 @@ The only exception is the directory `floormod` which was a special case where th
 
 ## Bug Types
 
-| Class  | Type | Patch Location |
+| Class  | Type | Location |
 | ------------- | ------------- | ------------- |
 | floormod  | crash | middleend |
 | backend_float_bitwise.py  | crash | backend |
