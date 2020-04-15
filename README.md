@@ -1,6 +1,19 @@
 ## TVMFuzz
 
-A fuzzer for TIR expressions in [TVM](https://tvm.apache.org/) by David Pankratz.
+A fuzzer for tensor-level intermediate representation(TIR) expressions in [TVM](https://tvm.apache.org/) created by David Pankratz for Secure Software Engineering Winter 2019 at the University of Alberta.
+
+TIR is user-facing as it can be used in tasks such as implementing custom neural network operators or implementing existing operators using custom hardware instructions. TIR and its infrastructure is also used by TVM in the process of lowering from the Relay IR level to machine instruction level. Thus, fixing bugs in TIR is significant in improving the usability and correctness of TVM as a whole. 
+
+## Organization
+
+This section describes the layout of this repository:
+
+- **bugs** contains bugs that were discovered by the TVMFuzz and fixed in TVM
+- **docs** contains documentation of the design of TVMFuzz 
+- **docker** contains dockerfile and local build instructions
+- **settings** contains the settings for TVMFuzz 
+- **src** contains the python source for TVMFuzz
+- **quicktests** contains example of quicktest script for mismatches investigation
 
 ## Usage
 
@@ -42,10 +55,4 @@ To use this option:
 3. `cd tvmfuzz/src/`
 4. `python3 tvmfuzz.py`
 
-## Organization
 
-- **bugs** contains bugs that were discovered by the TVMFuzz and fixed in TVM
-- **docs** contains documentation of the design of TVMFuzz 
-- **quicktests** contains quick test scripts for mismatches detected
-- **settings** contains the settings for TVMFuzz 
-- **src** contains the python source 
