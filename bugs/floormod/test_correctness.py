@@ -35,28 +35,28 @@ d = te.compute(shape,lambda i,j: tir.floormod(HDIM - i,-(j + 1)))
 s = te.create_schedule([c.op])
 s2 = te.create_schedule([d.op])
 f = tvm.build(s,[c])
-f2 = tvm.build(s,[d])
+f2 = tvm.build(s2,[d])
 f(c_tvm)
 out = c_tvm.asnumpy()
 for i in range(DIM):
 	for j in range(DIM):
 		res = out[i][j]
-		res2 = floormod(DIM/2 - i, j + 1)
+		res2 = floormod(HDIM - i, j + 1)
 		if res != res2:
 			print(i,j,res,res2)
 			assert False
 
 print("Done half")
-
+c_tvm = tvm.nd.array(np.zeros(shape=shape,dtype='int32'))
 f2(c_tvm)
 
 out = c_tvm.asnumpy()
 for i in range(DIM):
 	for j in range(DIM):
 		res = out[i][j]
-		res2 = floormod(DIM/2 - i, j + 1)
+		res2 = floormod(HDIM - i, -(j + 1))
 		if res != res2:
-			print(i,j,res,res2)
+			print(HDIM - i, -(j + 1),res,res2)
 			assert False
 
 
