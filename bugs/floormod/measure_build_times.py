@@ -58,6 +58,10 @@ if __name__ == "__main__":
 
 	num_levels = 7
 	for level in range(1,num_levels):
+		""" Patch only affects dtypes with bits <= 32 
+		so comparing the build time for int64 vs int32
+		is sufficient to assess difference of optimization.
+		"""
 		print("#" * 20)
 		print("Level={0}".format(level))
 		print("#" * 20)
