@@ -56,7 +56,7 @@ if __name__ == "__main__":
 	unoptimized_time_avgs = []
 	unoptimized_time_stds = []
 
-	num_levels = 2
+	num_levels = 7
 	for level in range(1,num_levels):
 		print("#" * 20)
 		print("Level={0}".format(level))
